@@ -26,6 +26,7 @@ pub struct Initialize<'info> {
     mint::decimals = 6,
     mint::authority = config
   )]
+  // LP token
   pub mint_lp: Account<'info, Mint>,
   
   #[account(
@@ -44,14 +45,16 @@ pub struct Initialize<'info> {
     associated_token::mint = mint_x,
     associated_token::authority = config,
   )]
+  // Holds x tokens
   pub vault_x: Account<'info, TokenAccount>,
   
   #[account(
     init,
     payer = initializer,
-    associated_token::mint = mint_x,
+    associated_token::mint = mint_y,
     associated_token::authority = config,
   )]
+  // Holds y tokens
   pub vault_y: Account<'info, TokenAccount>,
 
   pub system_program: Program<'info, System>,
