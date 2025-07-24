@@ -1,4 +1,11 @@
+#![allow(unexpected_cfgs, deprecated)]
 use anchor_lang::prelude::*;
+
+pub mod instructions;
+pub mod state;
+
+pub use instructions::*;
+pub use state::*;
 
 declare_id!("FN18FMQY7iizFvpQc2in2rwrwQRwshV4FcvnkaxDo1Wv");
 
@@ -6,11 +13,12 @@ declare_id!("FN18FMQY7iizFvpQc2in2rwrwQRwshV4FcvnkaxDo1Wv");
 pub mod anchor_amm {
     use super::*;
 
-    pub fn initialize(ctx: Context<Initialize>) -> Result<()> {
-        msg!("Greetings from: {:?}", ctx.program_id);
-        Ok(())
+    pub fn initialize(
+          ctx: Context<Initialize>
+        , seed: u64
+        , authority: Option<Pubkey>
+        , fee: u16
+    ) -> Result<()> {
+        ctx.accounts.init(seed, authority, fee, ctx.bumps)
     }
 }
-
-#[derive(Accounts)]
-pub struct Initialize {}
