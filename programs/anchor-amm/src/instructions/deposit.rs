@@ -5,7 +5,7 @@ use anchor_spl::{
 };
 use constant_product_curve::ConstantProduct;
 
-use crate::state::Config;
+use crate::{error::AmmError, state::Config};
 
 
 #[derive(Accounts)]
@@ -18,6 +18,7 @@ pub struct Deposit<'info> {
   pub mint_y: Account<'info, Mint>,
   
   #[account(
+    mut, // because changing the supply of the mint
     seeds = [b"lp", config.key().as_ref()],
     bump = config.lp_bump
   )]
@@ -38,7 +39,7 @@ pub struct Deposit<'info> {
     associated_token::mint = mint_x,
     associated_token::authority = config,
   )]
-  // Holds x tokens
+  // Pool for x tokens. Users who deposit and swap interact with this only
   pub vault_x: Account<'info, TokenAccount>,
   
   #[account(
@@ -46,7 +47,7 @@ pub struct Deposit<'info> {
     associated_token::mint = mint_y,
     associated_token::authority = config,
   )]
-  // Holds y tokens
+  // Pool for y tokens. Users who deposit and swap interact with this only
   pub vault_y: Account<'info, TokenAccount>,
 
   #[account(
@@ -84,20 +85,27 @@ impl<'info> Deposit<'info> {
   // 
   pub fn deposit(
     &mut self,
-    lp_amount: u64, // how many lp tokens depositer wants to get back
+    lp_amount: u64, // how many lp tokens depositer wants to get back (claim)
     
     // max tokens depositer is willing to deposit. To avoid slipage
     max_x: u64,
     max_y: u64,
   ) -> Result<()> {
 
-    assert!(lp_amount != 0);
+    assert!(self.config.locked == false, "{}", AmmError::PoolLocked);
+    assert!(lp_amount != 0, "{}", AmmError::InvalidAmount);
 
     // Calc how many 'x' and 'y' tokens user should deposit to get the lp tokens wanted
-    let (x, y) = match self.mint_lp.supply == 0 && self.vault_x.amount == 0 {
+    let (x, y) = match
+      // Initial state, there's no curve
+      self.mint_lp.supply == 0 && self.vault_x.amount == 0 && self.vault_y.amount == 0
+    {
       true => (max_x, max_y),
+      // Someine already deposited, and need to adhere to the existing curve
       false => {
+        // Calc the constant product curve and the respective x,y to deposit
         let amounts = ConstantProduct::xy_deposit_amounts_from_l(
+          // current state of the pool
             self.vault_x.amount
           , self.vault_y.amount
           , self.mint_lp.supply
@@ -109,14 +117,14 @@ impl<'info> Deposit<'info> {
       }
     };
 
-    assert!(x <= max_x && y <= max_y);
+    assert!(x <= max_x && y <= max_y, "{}", AmmError::SlippageExceeded);
 
     self.deposit_token(true, x)?;
     self.deposit_token(false, y)?;
     self.mint_lp_tokens(lp_amount)
   }
 
-  // Deposit 'x' or 'y' token
+  // Deposit 'x' or 'y' tokens to the corresponding vault
   fn deposit_token(
     &self,
     is_x: bool,
@@ -138,7 +146,6 @@ impl<'info> Deposit<'info> {
   // 
   fn mint_lp_tokens(&self, lp_amount: u64) -> Result<()> {
 
-    let cpi_program = self.token_program.to_account_info();
     let cpi_accs = MintTo{
       mint: self.mint_lp.to_account_info(),
       to: self.depositer_ata_lp.to_account_info(),
@@ -161,7 +168,7 @@ impl<'info> Deposit<'info> {
     let signer_seeds_other_way = &[&seeds_other_way[..]];
 
     let ctx = CpiContext::new_with_signer(
-      cpi_program,
+      self.token_program.to_account_info(),
       cpi_accs,
       &signer_seeds
     );

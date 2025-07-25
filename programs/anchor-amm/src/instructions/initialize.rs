@@ -21,7 +21,7 @@ pub struct Initialize<'info> {
   #[account(
     init,
     payer = initializer,
-    seeds = [b"lp", config.key.as_ref()],
+    seeds = [b"lp", config.key.as_ref()], // need to be unique for each config
     bump,
     mint::decimals = 6,
     mint::authority = config
@@ -45,7 +45,7 @@ pub struct Initialize<'info> {
     associated_token::mint = mint_x,
     associated_token::authority = config,
   )]
-  // Holds x tokens
+  // Pool for x tokens. Users who deposit and swap interact with this only
   pub vault_x: Account<'info, TokenAccount>,
   
   #[account(
@@ -54,7 +54,7 @@ pub struct Initialize<'info> {
     associated_token::mint = mint_y,
     associated_token::authority = config,
   )]
-  // Holds y tokens
+  // Pool for y tokens. Users who deposit and swap interact with this only
   pub vault_y: Account<'info, TokenAccount>,
 
   pub system_program: Program<'info, System>,
