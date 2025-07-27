@@ -32,4 +32,9 @@ pub mod anchor_amm {
     pub fn swap( ctx: Context<Swap>, is_x:bool, amount: u64, min: u64) -> Result<()> {
         ctx.accounts.swap(is_x, amount, min)
     }
+
+    // 
+    pub fn withdraw( ctx: Context<Withdraw>, lp_amount: u64, min_x: u64, min_y: u64) -> Result<()> {
+        ctx.accounts.withdraw(lp_amount, min_x, min_y)
+    }
 }
