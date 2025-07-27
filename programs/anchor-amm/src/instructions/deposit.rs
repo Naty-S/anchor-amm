@@ -82,7 +82,7 @@ pub struct Deposit<'info> {
 
 impl<'info> Deposit<'info> {
   
-  // 
+  // Deposit token pair to the pool
   pub fn deposit(
     &mut self,
     lp_amount: u64, // how many lp tokens depositer wants to get back (claim)
@@ -92,8 +92,8 @@ impl<'info> Deposit<'info> {
     max_y: u64,
   ) -> Result<()> {
 
-    assert!(self.config.locked == false, "{}", AmmError::PoolLocked);
-    assert!(lp_amount != 0, "{}", AmmError::InvalidAmount);
+    require!(self.config.locked == false, AmmError::PoolLocked);
+    require!(lp_amount != 0, AmmError::InvalidAmount);
 
     // Calc how many 'x' and 'y' tokens user should deposit to get the lp tokens wanted
     let (x, y) = match
@@ -101,7 +101,7 @@ impl<'info> Deposit<'info> {
       self.mint_lp.supply == 0 && self.vault_x.amount == 0 && self.vault_y.amount == 0
     {
       true => (max_x, max_y),
-      // Someine already deposited, and need to adhere to the existing curve
+      // Someone already deposited, and need to adhere to the existing curve
       false => {
         // Calc the constant product curve and the respective x,y to deposit
         let amounts = ConstantProduct::xy_deposit_amounts_from_l(
@@ -117,7 +117,7 @@ impl<'info> Deposit<'info> {
       }
     };
 
-    assert!(x <= max_x && y <= max_y, "{}", AmmError::SlippageExceeded);
+    require!(x <= max_x && y <= max_y, AmmError::SlippageExceeded);
 
     self.deposit_token(true, x)?;
     self.deposit_token(false, y)?;
