@@ -23,12 +23,13 @@ pub mod anchor_amm {
         ctx.accounts.init(seed, authority, fee, ctx.bumps)
     }
 
-    pub fn deposit(
-          ctx: Context<Deposit>
-        , lp_amount: u64
-        , max_x: u64
-        , max_y: u64
-    ) -> Result<()> {
+    // 
+    pub fn deposit(ctx: Context<Deposit>, lp_amount: u64, max_x: u64, max_y: u64) -> Result<()> {
         ctx.accounts.deposit(lp_amount, max_x, max_y)
+    }
+
+    // 
+    pub fn swap( ctx: Context<Swap>, is_x:bool, amount: u64, min: u64) -> Result<()> {
+        ctx.accounts.swap(is_x, amount, min)
     }
 }
